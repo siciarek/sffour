@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+
+# https://github.com/symfony/demo
+
+PROJECT=project
+TMPLDIR=./sfdir
+
+set -x
+
+[ ! -d ./$PROJECT ] || rm -rv ./$PROJECT.bak ; mv -v ./$PROJECT ./$PROJECT.bak
+
+composer create-project symfony/skeleton $PROJECT
+
+cp -R $TMPLDIR/* ./$PROJECT
+
+cd ./$PROJECT
+
+composer require \
+yaml \
+log \
+translation \
+form \
+validator \
+security \
+expression-language \
+mailer \
+twig \
+asset \
+lock \
+orm-fixtures \
+orm \
+maker \
+annotation \
+--no-interaction
+
+composer require --dev \
+cs-fixer \
+css-selector \
+stopwatch \
+debug \
+browser-kit \
+phpunit \
+server \
+profiler \
+white-october/pagerfanta-bundle \
+dama/doctrine-test-bundle \
+--no-interaction
+
+sed -i "s/DATABASE_URL=mysql:\/\/.*/DATABASE_URL=mysql:\/\/root:pass@127.0.0.1:3306\/$PROJECT/g" .env
+
+echo '.idea' >> .gitignore
+echo '/tmp' >> .gitignore
+
+sed -i 's/\(<listener class=".*" \/>\)/\1\n        <listener class="\\DAMA\\DoctrineTestBundle\\PHPUnit\\PHPUnitListener" \/>/' phpunit.xml.dist
+
+mkdir tmp
+
+bin/console doctrine:database:drop --force
+bin/console doctrine:database:create
+
+bin/console doctrine:migrations:diff
+bin/console doctrine:migrations:migrate --no-interaction
+
+bin/console doctrine:schema:validate
+
+bin/console doctrine:fixtures:load --no-interaction
+
+bin/console app:setup
+
+bin/phpunit
+
+bin/console server:run
+
+
